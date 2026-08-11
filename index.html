@@ -369,11 +369,12 @@
         <div class="cta-tag">지금 바로 문의하기</div>
         <h3>제작 문의 남기기</h3>
         <p>정보를 남겨주시면, 담당 MD가 확인 후 빠르게 연락드립니다.</p>
-        <form onsubmit="return false;">
-          <input type="text" placeholder="성함 / 브랜드명" required>
-          <input type="tel" placeholder="연락처" required>
-          <input type="email" placeholder="이메일" required>
-          <input type="text" placeholder="희망 굿즈 종류 (선택)">
+        <form action="https://formspree.io/f/xwleowqg" method="POST">
+          <input type="hidden" name="_subject" value="노트앤드 제작 문의">
+          <input type="text" name="성함_브랜드명" placeholder="성함 / 브랜드명" required>
+          <input type="tel" name="연락처" placeholder="연락처" required>
+          <input type="email" name="이메일" placeholder="이메일" required>
+          <input type="text" name="희망_굿즈_종류" placeholder="희망 굿즈 종류 (선택)">
           <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;">문의하기</button>
         </form>
       </div>
