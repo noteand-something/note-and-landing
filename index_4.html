@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOTE AND | 굿즈 리스크, 노트앤드가 대신 집니다</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FFFFFF;
+    --paper-deep:#F2F2F0;
+    --ink:#121212;
+    --ink-soft:#54545A;
+    --ink-faint:#96969C;
+    --navy:#1D2B4F;
+    --navy-deep:#12203D;
+    --amber:#C6302B;
+    --amber-soft:#F6D9D6;
+    --line:rgba(18,18,18,0.13);
+    --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Pretendard',sans-serif;
+    line-height:1.7;
+    -webkit-font-smoothing:antialiased;
+    word-break:keep-all;
+    overflow-wrap:break-word;
+  }
+  h1,h2,h3{font-family:'Pretendard',sans-serif;font-weight:700;letter-spacing:-0.01em;}
+  .mono{font-family:'Pretendard',sans-serif;}
+  .stat-num{font-family:'Newsreader',serif;font-weight:700;}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 28px;}
+  section{padding:120px 0;}
+  .eyebrow{
+    font-family:'Pretendard',sans-serif;
+    font-size:13px;
+    letter-spacing:0.02em;
+    color:var(--navy);
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:22px;
+  }
+  .eyebrow::before{content:"";width:16px;height:1px;background:var(--navy);}
+  .hairline{border:none;border-top:1px solid var(--line);}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:14px 28px;border-radius:2px;
+    font-size:15px;font-weight:500;text-decoration:none;
+    cursor:pointer;border:1px solid var(--ink);
+    transition:transform .15s ease, background .15s ease;
+  }
+  .btn-primary{background:var(--ink);color:var(--white);border-color:var(--ink);}
+  .btn-primary:hover{background:#000;transform:translateY(-1px);}
+  .btn-ghost{background:transparent;color:var(--ink);}
+  .btn-ghost:hover{background:var(--white);transform:translateY(-1px);}
+
+  /* ---------- Credential cards ---------- */
+  .solution-head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;flex-wrap:wrap;margin-bottom:44px;}
+  .solution-head-text{flex:1;min-width:280px;}
+  .credential-group{display:flex;flex-direction:column;gap:10px;min-width:260px;}
+  .credential{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid var(--line);background:var(--white);border-radius:6px;}
+  .credential-icon{width:34px;height:34px;border-radius:50%;background:var(--paper-deep);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .credential-icon svg{width:16px;height:16px;stroke:var(--navy);}
+  .credential.red .credential-icon svg{stroke:var(--amber);}
+  .credential-title{font-weight:700;font-size:14.5px;color:var(--ink);}
+  .credential-sub{font-size:12px;color:var(--ink-faint);margin-top:2px;}
+
+  /* ---------- Nav ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,0.92);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  nav.wrap{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;}
+  .logo{font-family:'Pretendard',sans-serif;font-weight:700;font-size:19px;letter-spacing:.02em;}
+  nav a.nav-link{color:var(--ink-soft);text-decoration:none;font-size:14px;margin-left:28px;}
+  nav a.nav-link:hover{color:var(--ink);}
+
+  /* ---------- Hero ---------- */
+  .hero{padding-top:96px;padding-bottom:100px;}
+  .hero h1{font-size:44px;line-height:1.35;margin-bottom:26px;max-width:640px;}
+  .hero p.sub{font-size:17px;color:var(--ink-soft);max-width:520px;margin-bottom:36px;}
+  .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;}
+
+  /* ---------- Problem ---------- */
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;margin-bottom:56px;}
+  .stat{border-top:1px solid var(--line);padding-top:20px;}
+  .stat .num{font-size:44px;color:var(--ink);}
+  .stat .num .unit{font-family:'Pretendard',sans-serif;font-weight:600;font-size:18px;color:var(--amber);margin-left:2px;}
+  .stat .lbl{font-size:13.5px;color:var(--ink-soft);margin-top:10px;}
+  .problem-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);}
+  .p-card{background:var(--white);padding:30px;font-size:15.5px;color:var(--ink-soft);}
+  .p-card:first-child{grid-column:1/-1;font-size:19px;font-family:'Pretendard',sans-serif;font-weight:700;color:var(--ink);}
+
+  /* ---------- Mission ---------- */
+  .mission{border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  .mission h2{font-size:34px;margin-bottom:26px;}
+  .mission p{font-size:17px;color:var(--ink-soft);max-width:620px;}
+  .mission .eyebrow{color:var(--amber);}
+  .mission .eyebrow::before{background:var(--amber);}
+
+  /* ---------- Solution ---------- */
+  .sol-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:20px;}
+  .sol-card{border-top:2px solid var(--navy);padding-top:18px;}
+  .sol-card .num{font-family:'Pretendard',sans-serif;font-size:13px;color:var(--amber);margin-bottom:8px;display:block;}
+  .sol-card h3{font-size:19px;margin-bottom:10px;}
+  .sol-card p{font-size:14.5px;color:var(--ink-soft);}
+
+  /* ---------- Impact stats (reference style) ---------- */
+  .impact-row{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;margin-top:48px;}
+  .impact-stat{border-top:1px solid var(--line);padding-top:22px;}
+  .impact-num{font-size:42px;color:var(--ink);line-height:1;}
+  .impact-num .unit{font-family:'Pretendard',sans-serif;font-weight:600;font-size:16px;color:var(--amber);margin-left:2px;}
+  .impact-lbl{font-size:13.5px;color:var(--ink-soft);margin-top:12px;line-height:1.5;}
+
+  /* ---------- Category ---------- */
+  .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:20px;}
+  .cat-card{background:var(--white);border:1px solid var(--line);padding:28px 24px;}
+  .cat-card .moq{display:inline-block;font-family:'Pretendard',sans-serif;font-size:12px;font-weight:600;color:var(--amber);border-bottom:1px solid var(--amber);padding-bottom:2px;margin-bottom:16px;}
+  .cat-card h3{font-size:18px;margin-bottom:10px;}
+  .cat-card p{font-size:14px;color:var(--ink-soft);}
+  .cat-card.soon{opacity:0.55;border-style:dashed;}
+  .moq-soon{color:var(--ink-faint);border-bottom-color:var(--line);}
+
+  /* ---------- Pricing ---------- */
+  .price-flow{display:flex;align-items:stretch;gap:0;margin-top:30px;}
+  .price-item{flex:1;background:var(--white);border:1px solid var(--line);padding:30px;position:relative;}
+  .price-item .when{font-family:'Pretendard',sans-serif;font-size:12px;color:var(--amber);margin-bottom:10px;}
+  .price-item h3{font-size:20px;margin-bottom:12px;}
+  .price-item p{font-size:14.5px;color:var(--ink-soft);}
+  .price-arrow{display:flex;align-items:center;justify-content:center;width:60px;color:var(--ink-faint);font-size:20px;}
+  .price-note{font-size:12.5px;color:var(--ink-faint);margin-top:20px;border-left:2px solid var(--line);padding-left:14px;}
+
+  /* ---------- Trust ---------- */
+  .trust-list{list-style:none;margin-top:20px;max-width:640px;}
+  .trust-list li{font-size:15px;color:var(--ink-soft);padding:10px 0;border-top:1px solid var(--line);}
+  .trust-list li:first-child{border-top:none;}
+  blockquote{
+    font-family:'Pretendard',sans-serif;font-size:19px;font-weight:500;color:var(--ink);
+    margin-top:32px;padding:24px 0 24px 24px;border-left:2px solid var(--amber);
+  }
+
+  /* ---------- CTA ---------- */
+  .cta-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px;}
+  .cta-card{background:var(--white);border:1px solid var(--line);padding:34px;display:flex;flex-direction:column;}
+  .cta-card.deep{border-color:var(--ink);}
+  .cta-tag{font-family:'Pretendard',sans-serif;font-size:12px;color:var(--amber);margin-bottom:12px;}
+  .cta-card h3{font-size:19px;margin-bottom:10px;}
+  .cta-card p{font-size:14.5px;color:var(--ink-soft);margin-bottom:22px;flex-grow:1;}
+  input[type=text],input[type=tel],input[type=email]{
+    width:100%;padding:12px 14px;margin-bottom:10px;border:1px solid var(--line);
+    background:var(--paper);font-family:'Pretendard',sans-serif;font-size:14px;border-radius:2px;
+  }
+  input:focus{outline:2px solid var(--navy);outline-offset:1px;}
+
+  footer{padding:50px 0;text-align:center;color:var(--ink-faint);font-size:13px;}
+
+  [data-reveal]{opacity:0;transform:translateY(16px);transition:opacity .6s ease, transform .6s ease;}
+  [data-reveal].in{opacity:1;transform:translateY(0);}
+
+  @media (max-width:800px){
+    section{padding:70px 0;}
+    .hero h1{font-size:30px;}
+    .stats-row,.problem-grid,.sol-grid,.cat-grid,.cta-grid{grid-template-columns:1fr;}
+    .impact-row{grid-template-columns:repeat(2,1fr);}
+    .solution-head{flex-direction:column;align-items:stretch;}
+    .price-flow{flex-direction:column;}
+    .price-arrow{transform:rotate(90deg);height:30px;}
+    nav a.nav-link{display:none;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <div class="logo">NOTE AND</div>
+    <div>
+      <a class="nav-link" href="#problem">고민</a>
+      <a class="nav-link" href="#solution">해결책</a>
+      <a class="nav-link" href="#pricing">가격</a>
+      <a class="nav-link" href="#cta">문의하기</a>
+    </div>
+  </nav>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">굿즈 제작 대행이 아닌, 중국 공장 리스크까지 책임지는 안심 파트너</div>
+    <h1>중국 공장 리스크는 노트앤드가 대신 집니다.<br>소량 50개부터, 안심하고 시작하세요.</h1>
+    <p class="sub">현직 굿즈 MD가 샘플 확인부터 품질 체크, 문제 발생 시 대응까지 책임집니다.<br>최종 납품 전 사진과 영상으로 최종 컨펌 후 품질보증료를 받습니다.</p>
+    <div class="hero-ctas">
+      <a href="#cta" class="btn btn-primary">지금 바로 문의하기</a>
+      <a href="#solution" class="btn btn-ghost">어떻게 진행되나요?</a>
+    </div>
+  </div>
+</section>
+
+<hr class="hairline">
+
+<section id="problem">
+  <div class="wrap">
+    <div class="eyebrow">작가님들이 가장 많이 마주치는 순간들</div>
+    <div class="stats-row" data-reveal>
+      <div class="stat"><div class="num stat-num">75<span class="unit">%</span></div><div class="lbl">"MOQ 때문에 시작을 못했어요"</div></div>
+      <div class="stat"><div class="num stat-num">94<span class="unit">%</span></div><div class="lbl">"재고가 남아 부담이었어요"</div></div>
+      <div class="stat"><div class="num stat-num">44<span class="unit">%</span></div><div class="lbl">"마진이 남지 않았어요"</div></div>
+    </div>
+    <div class="problem-grid" data-reveal>
+      <div class="p-card">혹시 지금 이런 고민으로 신상 굿즈 출시를 망설이고 계신가요?</div>
+      <div class="p-card">"공장을 어디서 찾아야 할지도 모르겠고, 샘플도 못 보고 발주하는 게 너무 불안해요."</div>
+      <div class="p-card">"중국 공장이랑 소통하려니 말이 안 통해서 막막하고 답답해요."</div>
+      <div class="p-card">"중국 직구/사입을 알아보니 내 디자인이 카피되거나 IP를 도용당할까 봐 무서워요."</div>
+      <div class="p-card">"예산이 적고 소량이라는 이유로 대형 공장들로부터 제작을 거절당했어요."</div>
+      <div class="p-card">"국내에서 만들자니 마진이 10%도 안 남아서 남 좋은 일만 시키는 기분이에요."</div>
+      <div class="p-card">"비싼 샘플비만 날리고 원하는 퀄리티가 안 나올까 봐 선뜻 시작을 못 하겠어요."</div>
+    </div>
+  </div>
+</section>
+
+<section class="mission">
+  <div class="wrap" data-reveal>
+    <div class="eyebrow">WHY NOTE AND</div>
+    <h2>굿즈, 왜 만드시나요?</h2>
+    <p>예쁜 굿즈 하나를 더 만드는 게 목표는 아니실 거예요.<br>그 굿즈가 누군가에게 닿아서,<br>브랜드를 기억하게 만들고, 결국 매출로 이어지길 원하실 거예요.<br><br>
+    노트앤드는 "만들어 드리는 것"에서 멈추지 않습니다.<br>이 굿즈를 왜 만들어야 하는지, 만든 뒤에는 어떻게 팔고 알릴지까지<br>함께 설계하는 상품화 파트너입니다.</p>
+  </div>
+</section>
+
+<section id="solution">
+  <div class="wrap">
+    <div class="solution-head">
+      <div class="solution-head-text">
+        <div class="eyebrow">노트앤드는 단순한 소싱 중개 대행사가 아닙니다</div>
+        <h2 style="font-size:30px;">예산과 수량 조건에 맞는 생산 설계부터, 결과를 보증하는 사후관리까지</h2>
+      </div>
+      <div class="credential-group" data-reveal>
+        <div class="credential">
+          <div class="credential-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/></svg></div>
+          <div>
+            <div class="credential-title">품질보증</div>
+            <div class="credential-sub">사진·영상 최종 컨펌 후 납품</div>
+          </div>
+        </div>
+        <div class="credential red">
+          <div class="credential-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="10" width="10" height="8" rx="1.5"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg></div>
+          <div>
+            <div class="credential-title">NNN 계약</div>
+            <div class="credential-sub">비밀유지 · 우회금지 · 무단유용금지</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="sol-grid" data-reveal>
+      <div class="sol-card">
+        <span class="num">01 · 리스크 대행</span>
+        <h3>품질보증 및 리스크 대행</h3>
+        <p>발주 전 샘플 확인 → 생산 중 퀄리티 체크 → 문제 발생 시 대응까지, 전 과정을 대신 책임집니다.</p>
+      </div>
+      <div class="sol-card">
+        <span class="num">02 · 소량 큐레이션</span>
+        <h3>소량 제작 가능 품목 우선 큐레이션</h3>
+        <p>50개~100개 내외로 제작 가능한 품목을 최우선 배치하고, 어려운 품목은 공구형 제작으로 MOQ를 낮춥니다.</p>
+      </div>
+      <div class="sol-card">
+        <span class="num">03 · IP 보호</span>
+        <h3>계약 기반 IP 보호</h3>
+        <p>위탁제작 대행 계약서 + NNN 계약서(비밀유지·우회금지·무단유용금지, CIETAC 관할)로 법적 보호 장치를 확보했습니다.</p>
+      </div>
+      <div class="sol-card">
+        <span class="num">04 · 화이트리스트</span>
+        <h3>검증된 공장 화이트리스트</h3>
+        <p>대표가 직접 제작·판매하며 검증한 중국 공장 네트워크를 통해 제작하여 납품합니다.</p>
+      </div>
+    </div>
+    <div class="impact-row" data-reveal>
+      <div class="impact-stat">
+        <div class="impact-num stat-num">2<span class="unit">배</span></div>
+        <div class="impact-lbl">국내 제작비로 노트앤드에서<br>만들 수 있는 제작 횟수</div>
+      </div>
+      <div class="impact-stat">
+        <div class="impact-num stat-num">48<span class="unit">%</span></div>
+        <div class="impact-lbl">국내 대비 절감되는<br>제작비 비율</div>
+      </div>
+      <div class="impact-stat">
+        <div class="impact-num stat-num">100<span class="unit">개~</span></div>
+        <div class="impact-lbl">기존 500개였던<br>최소 제작 수량</div>
+      </div>
+      <div class="impact-stat">
+        <div class="impact-num stat-num">100<span class="unit">만원+</span></div>
+        <div class="impact-lbl">100개 제작 시<br>확보할 수 있는 비용</div>
+      </div>
+    </div>
+    <p class="price-note" style="text-align:center;margin-top:16px;">* 큐브 100개 제작 기준 예시이며, 실제 견적은 제품·수량에 따라 달라질 수 있어요.</p>
+  </div>
+</section>
+
+<hr class="hairline">
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">제작 카테고리</div>
+    <h2 style="font-size:28px;">남들 다 하는 흔한 굿즈가 싫은 작가님들을 위한 라인업</h2>
+    <div class="cat-grid" data-reveal>
+      <div class="cat-card"><span class="moq">MOQ 100개</span><h3>풀그래픽 큐브</h3><p>누구나 즐길 수 있는 게이미피케이션 아이템. 6면 모두 풀그래픽 제작이 가능합니다. 스티커로 제작하는 타사와 달리, 직접 인쇄 방식이라 색감과 퀄리티가 다릅니다.</p></div>
+      <div class="cat-card"><span class="moq">MOQ 100개</span><h3>3D 크리스탈볼 무드등</h3><p>크리스탈볼 안에 3D 각인이 가능한, 시중에서 흔히 볼 수 없는 아이템입니다. 은은한 무드 조명과 만나 소장 가치를 한층 높여줍니다. 로고나 캐릭터를 입체적으로 새겨 브랜드만의 시그니처 굿즈로 완성할 수 있습니다.</p></div>
+      <div class="cat-card soon"><span class="moq moq-soon">준비중</span><h3>그 외 아이템</h3><p>점착 메모지, 봉봉 스티커 등 다양한 아이템을 준비하고 있습니다.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="eyebrow">결과물이 만족스러울 때만 지불하는, 후불 파트너십</div>
+    <h2 style="font-size:28px;">가격 안내</h2>
+    <div class="price-flow" data-reveal>
+      <div class="price-item">
+        <div class="when">발주 시</div>
+        <h3>제작비</h3>
+        <p>최종 선정된 아이템별 발주 수량에 따라 제작비를 선결제하시면, 공장에 발주가 진행됩니다. 소통부터 퀄리티 체크, 일정 조율까지 노트앤드가 진행합니다.</p>
+      </div>
+      <div class="price-arrow">→</div>
+      <div class="price-item">
+        <div class="when">납품 시 (후불)</div>
+        <h3>품질보증료</h3>
+        <p>최종 납품 전 사진과 영상으로 최종 컨펌 후 발송되는 시점에 품질보증료가 청구됩니다. 선지급 부담이 없습니다.</p>
+      </div>
+    </div>
+    <p class="price-note">* 품질보증의 범위는 발주 전 작가님과 합의한 체크리스트(퀄리티 기준) 통과 여부를 기준으로 하며, 세부 조건은 상담 시 안내드립니다.</p>
+  </div>
+</section>
+
+<hr class="hairline">
+
+<section>
+  <div class="wrap" data-reveal>
+    <div>
+      <div class="eyebrow">신뢰도 확보</div>
+      <h2 style="font-size:26px;margin-bottom:6px;">현장에서 매일 마주친 구조적 문제를 해결하기 위해 출발했습니다.</h2>
+      <ul class="trust-list">
+        <li>전) B2B 굿즈 플랫폼 PM·MD 출신</li>
+        <li>현) 브랜드 PB 상품 기획 MD</li>
+        <li>다양한 브랜드의 PB 제품 제작 이력 다수</li>
+        <li>다양한 기업·브랜드의 굿즈 제작 프로젝트 직접 총괄 운영</li>
+        <li>중국 현지 공장 직접 시찰 및 검증된 공급망 네트워크 확보</li>
+        <li>중국어 능통 — 통역 없이 공장과 직접 소통, 스펙·디자인 오류를 원천 차단</li>
+        <li>위탁제작 대행 계약서 + NNN 계약서(CIETAC 관할) 법무법인 정식 작성 완료</li>
+      </ul>
+      <blockquote>"단순 중개가 아닙니다.<br>현장에서 직접 확인한 실행 기반의 공급망과 법적 보호 장치로,<br>작가님들이 리스크 걱정 없이 '돈 버는 창작'을 할 수 있도록 지원합니다."</blockquote>
+    </div>
+  </div>
+</section>
+
+<section id="cta">
+  <div class="wrap">
+    <div class="eyebrow">지금 내 굿즈, 더 안전하게 만드는 첫걸음</div>
+    <div class="cta-grid" data-reveal style="grid-template-columns:1fr;max-width:440px;">
+      <div class="cta-card deep">
+        <div class="cta-tag">지금 바로 문의하기</div>
+        <h3>제작 문의 남기기</h3>
+        <p>정보를 남겨주시면, 담당 MD가 확인 후 빠르게 연락드립니다.</p>
+        <form onsubmit="return false;">
+          <input type="text" placeholder="성함 / 브랜드명" required>
+          <input type="tel" placeholder="연락처" required>
+          <input type="email" placeholder="이메일" required>
+          <input type="text" placeholder="희망 굿즈 종류 (선택)">
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;">문의하기</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">NOTE AND · 굿즈 제작, 리스크는 노트앤드가 짊어집니다</div>
+</footer>
+
+<script>
+  const items = document.querySelectorAll('[data-reveal]');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:0.15});
+  items.forEach(el => io.observe(el));
+</script>
+
+</body>
+</html>
