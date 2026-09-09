@@ -207,6 +207,7 @@
       <a class="nav-link" href="#solution">해결책</a>
       <a class="nav-link" href="#pricing">가격</a>
       <a class="nav-link" href="#cta">문의하기</a>
+      <a class="nav-link" href="/login.html">로그인</a>
     </div>
   </nav>
 </header>
@@ -421,7 +422,7 @@
         <div class="cta-tag">지금 바로 문의하기</div>
         <h3>제작 문의 남기기</h3>
         <p>정보를 남겨주시면, 노트앤드가 확인 후 빠르게 연락드립니다.</p>
-        <form action="https://formspree.io/f/xwleowqg" method="POST">
+        <form id="diagnosis-form">
           <input type="hidden" name="_subject" value="노트앤드 제작 문의">
           <input type="text" name="성함_브랜드명" placeholder="성함 / 브랜드명" required>
           <input type="tel" name="연락처" placeholder="연락처" required>
@@ -431,6 +432,7 @@
           <input type="text" name="예산" placeholder="예산 (선택)">
           <textarea name="참고사항" placeholder="참고사항 (선택)"></textarea>
           <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:6px;">문의하기</button>
+          <p id="diagnosis-form-msg" style="margin-top:10px;font-size:13.5px;"></p>
         </form>
       </div>
     </div>
@@ -447,6 +449,49 @@
     entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
   }, {threshold:0.15});
   items.forEach(el => io.observe(el));
+
+  // 진단폼 제출: /api/notify 로 전송 (서버에서 Supabase 저장 + 슬랙 알림)
+  const diagForm = document.getElementById('diagnosis-form');
+  const diagMsg = document.getElementById('diagnosis-form-msg');
+  if (diagForm) {
+    diagForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = diagForm.querySelector('button[type=submit]');
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '전송 중...';
+      diagMsg.textContent = '';
+
+      const fd = new FormData(diagForm);
+      const payload = {
+        name: fd.get('성함_브랜드명'),
+        phone: fd.get('연락처'),
+        email: fd.get('이메일'),
+        productType: fd.get('희망_굿즈_종류'),
+        quantity: fd.get('필요_수량'),
+        budget: fd.get('예산'),
+        notes: fd.get('참고사항'),
+      };
+
+      try {
+        const res = await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('요청 실패');
+        diagMsg.style.color = '#2a7a4a';
+        diagMsg.textContent = '문의가 접수되었습니다. 빠르게 연락드릴게요!';
+        diagForm.reset();
+      } catch (err) {
+        diagMsg.style.color = '#c0392b';
+        diagMsg.textContent = '전송에 실패했어요. 잠시 후 다시 시도해주세요.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+      }
+    });
+  }
 </script>
 
 </body>
