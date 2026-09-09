@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 신청 현황 | NOTE AND</title>
+<style>
+  :root{--navy:#1d3557;--line:#e7e5e0;--ink-soft:#666;}
+  *{box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;background:#f7f7f5;margin:0;color:#1a1a1a;}
+  .wrap{max-width:680px;margin:0 auto;padding:48px 20px;}
+  .back{display:inline-block;margin-bottom:18px;font-size:14px;color:var(--ink-soft);text-decoration:none;}
+  .back:hover{color:var(--navy);}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;}
+  h1{font-size:22px;margin:0;}
+  .logout{font-size:14px;color:var(--ink-soft);cursor:pointer;background:none;border:none;text-decoration:underline;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:12px;}
+  .card .top{display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:700;}
+  .status{display:inline-block;padding:4px 11px;border-radius:999px;background:#eef2f7;color:var(--navy);font-size:12px;font-weight:700;}
+  .row{display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink-soft);margin-top:7px;}
+  .empty{text-align:center;color:var(--ink-soft);padding:70px 16px;line-height:1.7;}
+  .loading{text-align:center;color:var(--ink-soft);padding:60px 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← 홈으로</a>
+  <header>
+    <h1>내 신청 현황</h1>
+    <button class="logout" id="logout-btn">로그아웃</button>
+  </header>
+  <div id="list" class="loading">불러오는 중...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  // TODO: Supabase 프로젝트 설정 > API 에서 아래 두 값을 채워주세요. (login.html과 동일한 값)
+  const SUPABASE_URL = 'https://oblreetsmbzurfmdskpl.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_PxmipI1KWIgeMuwP-5Ci8Q_RZwtwo2c';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const listEl = document.getElementById('list');
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      window.location.href = '/login.html';
+      return;
+    }
+
+    const { data, error } = await sb
+      .from('diagnosis_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      listEl.innerHTML = `<div class="empty">신청 현황을 불러오는 중 문제가 생겼어요.<br>잠시 후 다시 시도해주세요.</div>`;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      listEl.innerHTML = `<div class="empty">아직 제출한 진단 신청이 없어요.<br>홈에서 진단폼을 먼저 제출해주세요.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = data.map(row => `
+      <div class="card">
+        <div class="top">
+          <span>${esc(row.product_type) || '굿즈 제작 문의'}</span>
+          <span class="status">${esc(row.status) || '검토중'}</span>
+        </div>
+        <div class="row"><span>제출일</span><span>${new Date(row.created_at).toLocaleDateString('ko-KR')}</span></div>
+        <div class="row"><span>수량</span><span>${esc(row.quantity) || '-'}</span></div>
+        <div class="row"><span>예산</span><span>${esc(row.budget) || '-'}</span></div>
+      </div>
+    `).join('');
+  }
+
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    window.location.href = '/login.html';
+  });
+
+  init();
+</script>
+</body>
+</html>
