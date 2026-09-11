@@ -1,15 +1,18 @@
 // 견적 발송 처리: 관리자(브랜드 계정)만 호출 가능.
 // 신청 건에 저장된 견적 항목(quote_items)으로 정식 견적서 PDF를 만들어 신청자 이메일로 보내고,
 // 상태를 '견적발송'으로 바꿉니다.
+// 이메일은 Gmail(SMTP)로 직접 보냅니다 — 도메인 인증 없이도 실제 고객 주소로 발송 가능합니다.
 // 필요한 환경변수 (Vercel 프로젝트 설정 > Environment Variables 에 등록):
 //   SUPABASE_URL              - Supabase 프로젝트 URL
 //   SUPABASE_SERVICE_ROLE_KEY - Supabase service_role(=secret) 키
-//   RESEND_API_KEY            - Resend API 키 (이메일 발송용)
+//   GMAIL_USER                - 발신용 Gmail 주소 (예: noteand.something@gmail.com)
+//   GMAIL_APP_PASSWORD        - 그 Gmail 계정의 앱 비밀번호 (일반 로그인 비밀번호 아님)
 
 const fs = require('fs');
 const path = require('path');
 const { PDFDocument, rgb } = require('pdf-lib');
 const fontkit = require('@pdf-lib/fontkit');
+const nodemailer = require('nodemailer');
 
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_PxmipI1KWIgeMuwP-5Ci8Q_RZwtwo2c';
 const ADMIN_EMAIL = 'noteand.something@gmail.com';
@@ -179,7 +182,6 @@ module.exports = async function handler(req, res) {
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const RESEND_API_KEY = process.env.RESEND_API_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     res.status(500).json({ error: '서버 환경변수가 설정되지 않았습니다.' });
@@ -235,20 +237,21 @@ module.exports = async function handler(req, res) {
       validDays: row.quote_valid_days || 7,
       issueDate,
     });
-    const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
     const total = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0), 0);
 
-    // 4) 이메일 발송 (Resend, PDF 첨부)
-    if (RESEND_API_KEY) {
-      const emailRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${RESEND_API_KEY}`,
-        },
-        body: JSON.stringify({
-          from: 'NOTE AND <onboarding@resend.dev>',
-          to: [row.email],
+    // 4) 이메일 발송 (Gmail SMTP, PDF 첨부) — 도메인 인증 없이 실제 고객 주소로 발송 가능
+    const GMAIL_USER = process.env.GMAIL_USER;
+    const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
+
+    if (GMAIL_USER && GMAIL_APP_PASSWORD) {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+      });
+      try {
+        await transporter.sendMail({
+          from: `NOTE AND <${GMAIL_USER}>`,
+          to: row.email,
           subject: `[NOTE AND] ${row.name}님, 견적서가 도착했어요`,
           text:
             `안녕하세요, ${row.name}님.\n\n` +
@@ -259,19 +262,19 @@ module.exports = async function handler(req, res) {
           attachments: [
             {
               filename: `노트앤드_견적서_${issueDate}.pdf`,
-              content: pdfBase64,
+              content: Buffer.from(pdfBytes),
             },
           ],
-        }),
-      });
-      if (!emailRes.ok) {
-        const errText = await emailRes.text();
-        console.error('Resend quote email failed:', emailRes.status, errText);
+        });
+      } catch (err) {
+        console.error('Gmail quote email failed:', err);
         res.status(502).json({ error: '이메일 발송에 실패했습니다.' });
         return;
       }
     } else {
-      console.error('RESEND_API_KEY 환경변수가 설정되지 않았습니다.');
+      console.error('GMAIL_USER / GMAIL_APP_PASSWORD 환경변수가 설정되지 않았습니다.');
+      res.status(500).json({ error: '이메일 발송 설정(Gmail)이 되어있지 않습니다.' });
+      return;
     }
 
     // 5) 상태를 '견적발송'으로 업데이트 + 발송 시각 기록
