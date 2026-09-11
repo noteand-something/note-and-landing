@@ -207,6 +207,7 @@
       <a class="nav-link" href="#solution">해결책</a>
       <a class="nav-link" href="#pricing">가격</a>
       <a class="nav-link" href="#cta">문의하기</a>
+      <a class="nav-link" id="nav-mypage-link" href="/dashboard.html" style="display:none;">마이페이지</a>
       <a class="nav-link" id="nav-login-link" href="/login.html">로그인</a>
     </div>
   </nav>
@@ -450,11 +451,13 @@
     var NAV_SUPABASE_ANON_KEY = 'sb_publishable_PxmipI1KWIgeMuwP-5Ci8Q_RZwtwo2c';
     var navSb = supabase.createClient(NAV_SUPABASE_URL, NAV_SUPABASE_ANON_KEY);
     var navLink = document.getElementById('nav-login-link');
+    var mypageLink = document.getElementById('nav-mypage-link');
     if (!navLink) return;
 
     navSb.auth.getSession().then(function (result) {
       var session = result.data.session;
       if (session) {
+        if (mypageLink) mypageLink.style.display = '';
         navLink.textContent = '로그아웃';
         navLink.href = '#';
         navLink.addEventListener('click', function (e) {
