@@ -18,15 +18,26 @@
   .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;}
   .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
   .name{font-size:15.5px;font-weight:700;}
-  .status-badge{display:inline-block;padding:4px 11px;border-radius:999px;background:#eef2f7;color:var(--navy);font-size:12px;font-weight:700;white-space:nowrap;}
   .row{display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink-soft);margin-top:6px;gap:10px;}
   .row span:last-child{color:#1a1a1a;text-align:right;}
   .divider{border-top:1px solid var(--line);margin:14px 0;}
   .field-label{font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;display:block;}
   .field-row{margin-bottom:10px;}
-  input.q-amount, textarea.q-memo, select.q-status{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;}
-  textarea.q-memo{min-height:56px;resize:vertical;}
-  .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  textarea.q-memo, select.q-status{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;}
+  textarea.q-memo{min-height:52px;resize:vertical;}
+  select.q-status{width:auto;}
+  .items-table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+  .items-table th{font-size:11px;color:var(--ink-soft);text-align:left;padding:2px 4px 6px;font-weight:600;}
+  .items-table td{padding:3px 4px;}
+  .items-table input{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;font-family:inherit;}
+  .items-table input.item-qty, .items-table input.item-price{text-align:right;}
+  .item-remove{background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;padding:4px 6px;}
+  .add-item-btn{background:#eef2f7;color:var(--navy);font-size:12.5px;padding:7px 12px;margin-top:2px;}
+  .add-item-btn:hover{background:#e2e8f0;}
+  .total-line{text-align:right;font-size:14.5px;font-weight:700;margin:6px 0 14px;color:var(--navy);}
+  .valid-days-row{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink-soft);}
+  .valid-days-row input{width:60px;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;text-align:right;}
+  .actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
   button{border:none;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;padding:10px 16px;transition:background .15s ease;}
   .btn-send{background:var(--navy);color:#fff;}
   .btn-send:hover{background:var(--navy-deep);}
@@ -87,6 +98,10 @@
 
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function won(n) {
+    const num = Number(n) || 0;
+    return (num < 0 ? '-' : '') + '₩' + Math.abs(num).toLocaleString('ko-KR');
   }
 
   function showView(view) {
@@ -161,10 +176,26 @@
     data.forEach(row => bindCard(row));
   }
 
+  function itemRowHtml(item) {
+    const name = item ? item.name : '';
+    const qty = item ? item.qty : '';
+    const price = item ? item.price : '';
+    return `
+      <tr class="item-row">
+        <td><input type="text" class="item-name" placeholder="상품명" value="${esc(name)}"></td>
+        <td style="width:70px;"><input type="number" class="item-qty" placeholder="수량" value="${esc(qty)}"></td>
+        <td style="width:110px;"><input type="number" class="item-price" placeholder="단가" value="${esc(price)}"></td>
+        <td style="width:30px;"><button type="button" class="item-remove" data-role="remove">✕</button></td>
+      </tr>
+    `;
+  }
+
   function renderCard(row) {
     const statusOpts = STATUS_OPTIONS.map(s =>
       `<option value="${s}" ${row.status === s ? 'selected' : ''}>${s}</option>`
     ).join('');
+    const items = Array.isArray(row.quote_items) && row.quote_items.length > 0 ? row.quote_items : [null];
+    const itemsHtml = items.map(itemRowHtml).join('');
     return `
       <div class="card" data-id="${row.id}">
         <div class="top">
@@ -179,13 +210,20 @@
           <select class="q-status" data-role="status">${statusOpts}</select>
         </div>
         <div class="divider"></div>
-        <div class="field-row">
-          <span class="field-label">견적 금액</span>
-          <input type="text" class="q-amount" data-role="amount" placeholder="예: 1,500,000원" value="${esc(row.quote_amount)}">
-        </div>
+        <span class="field-label">견적 항목</span>
+        <table class="items-table" data-role="items-table">
+          <thead><tr><th>상품명</th><th>수량</th><th>단가</th><th></th></tr></thead>
+          <tbody data-role="items-body">${itemsHtml}</tbody>
+        </table>
+        <button type="button" class="add-item-btn" data-role="add-item">+ 항목 추가</button>
+        <div class="total-line" data-role="total">합계 ${won(0)}</div>
         <div class="field-row">
           <span class="field-label">메모 (배송 일정, 조건 등 · 선택)</span>
           <textarea class="q-memo" data-role="memo" placeholder="선택 입력">${esc(row.quote_memo)}</textarea>
+        </div>
+        <div class="valid-days-row">
+          <span>견적 유효기간 (발행일로부터)</span>
+          <input type="number" data-role="valid-days" value="${row.quote_valid_days || 7}"> 일
         </div>
         <div class="actions">
           <button class="btn-send" data-role="send-btn">이 내용으로 견적 발송</button>
@@ -200,10 +238,42 @@
     const card = document.querySelector(`.card[data-id="${row.id}"]`);
     if (!card) return;
     const statusEl = card.querySelector('[data-role="status"]');
-    const amountEl = card.querySelector('[data-role="amount"]');
+    const itemsBody = card.querySelector('[data-role="items-body"]');
+    const addItemBtn = card.querySelector('[data-role="add-item"]');
+    const totalEl = card.querySelector('[data-role="total"]');
     const memoEl = card.querySelector('[data-role="memo"]');
+    const validDaysEl = card.querySelector('[data-role="valid-days"]');
     const sendBtn = card.querySelector('[data-role="send-btn"]');
     const msgEl = card.querySelector('[data-role="msg"]');
+
+    function recalcTotal() {
+      let total = 0;
+      itemsBody.querySelectorAll('.item-row').forEach(tr => {
+        const qty = Number(tr.querySelector('.item-qty').value) || 0;
+        const price = Number(tr.querySelector('.item-price').value) || 0;
+        total += qty * price;
+      });
+      totalEl.textContent = `합계 ${won(total)}`;
+    }
+
+    function bindRow(tr) {
+      tr.querySelectorAll('.item-qty, .item-price').forEach(el => el.addEventListener('input', recalcTotal));
+      tr.querySelector('[data-role="remove"]').addEventListener('click', () => {
+        if (itemsBody.querySelectorAll('.item-row').length <= 1) {
+          tr.querySelectorAll('input').forEach(i => i.value = '');
+        } else {
+          tr.remove();
+        }
+        recalcTotal();
+      });
+    }
+    itemsBody.querySelectorAll('.item-row').forEach(bindRow);
+    recalcTotal();
+
+    addItemBtn.addEventListener('click', () => {
+      itemsBody.insertAdjacentHTML('beforeend', itemRowHtml(null));
+      bindRow(itemsBody.lastElementChild);
+    });
 
     // 상태만 바꿀 때는 바로 저장
     statusEl.addEventListener('change', async () => {
@@ -221,22 +291,33 @@
     });
 
     sendBtn.addEventListener('click', async () => {
-      const amount = amountEl.value.trim();
+      const items = [];
+      itemsBody.querySelectorAll('.item-row').forEach(tr => {
+        const name = tr.querySelector('.item-name').value.trim();
+        const qty = tr.querySelector('.item-qty').value;
+        const price = tr.querySelector('.item-price').value;
+        if (name) {
+          items.push({ name, qty: Number(qty) || 0, price: Number(price) || 0 });
+        }
+      });
       const memo = memoEl.value.trim();
-      if (!amount) {
+      const validDays = Number(validDaysEl.value) || 7;
+
+      if (items.length === 0) {
         msgEl.className = 'err-note';
-        msgEl.textContent = '견적 금액을 입력해주세요.';
+        msgEl.textContent = '견적 항목을 하나 이상 입력해주세요.';
         return;
       }
+
       sendBtn.disabled = true;
       msgEl.className = '';
       msgEl.style.color = '#666';
       msgEl.textContent = '발송 중...';
 
-      // 1) 견적 금액/메모 먼저 저장
+      // 1) 견적 항목/메모/유효기간 먼저 저장
       const { error: updateError } = await sb
         .from('diagnosis_requests')
-        .update({ quote_amount: amount, quote_memo: memo || null })
+        .update({ quote_items: items, quote_memo: memo || null, quote_valid_days: validDays })
         .eq('id', row.id);
 
       if (updateError) {
@@ -246,7 +327,7 @@
         return;
       }
 
-      // 2) 이메일 발송 요청
+      // 2) 이메일(PDF 견적서) 발송 요청
       const { data: { session } } = await sb.auth.getSession();
       try {
         const res = await fetch('/api/send-quote', {
@@ -260,7 +341,7 @@
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || '발송 실패');
         msgEl.className = 'sent-note';
-        msgEl.textContent = '견적 메일이 발송되었어요!';
+        msgEl.textContent = '견적서 PDF가 이메일로 발송되었어요!';
         statusEl.value = '견적발송';
       } catch (err) {
         msgEl.className = 'err-note';
