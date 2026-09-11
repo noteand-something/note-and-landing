@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/send-quote.js": {
+      "includeFiles": "api/fonts/**"
+    }
+  }
+}
