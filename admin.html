@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 | NOTE AND</title>
+<style>
+  :root{--navy:#1d3557;--navy-deep:#14263f;--line:#e7e5e0;--ink-soft:#666;--green:#2a7a4a;--red:#c0392b;}
+  *{box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;background:#f7f7f5;margin:0;color:#1a1a1a;}
+  .wrap{max-width:900px;margin:0 auto;padding:48px 20px;}
+  .narrow{max-width:420px;}
+  .back{display:inline-block;margin-bottom:18px;font-size:14px;color:var(--ink-soft);text-decoration:none;}
+  .back:hover{color:var(--navy);}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;}
+  h1{font-size:22px;margin:0;}
+  .logout{font-size:14px;color:var(--ink-soft);cursor:pointer;background:none;border:none;text-decoration:underline;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .name{font-size:15.5px;font-weight:700;}
+  .status-badge{display:inline-block;padding:4px 11px;border-radius:999px;background:#eef2f7;color:var(--navy);font-size:12px;font-weight:700;white-space:nowrap;}
+  .row{display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink-soft);margin-top:6px;gap:10px;}
+  .row span:last-child{color:#1a1a1a;text-align:right;}
+  .divider{border-top:1px solid var(--line);margin:14px 0;}
+  .field-label{font-size:12.5px;color:var(--ink-soft);margin-bottom:4px;display:block;}
+  .field-row{margin-bottom:10px;}
+  input.q-amount, textarea.q-memo, select.q-status{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;}
+  textarea.q-memo{min-height:56px;resize:vertical;}
+  .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  button{border:none;border-radius:8px;font-size:13.5px;font-weight:700;cursor:pointer;padding:10px 16px;transition:background .15s ease;}
+  .btn-send{background:var(--navy);color:#fff;}
+  .btn-send:hover{background:var(--navy-deep);}
+  .btn-send:disabled{opacity:.5;cursor:default;}
+  .sent-note{font-size:12.5px;color:var(--green);margin-top:8px;}
+  .err-note{font-size:12.5px;color:var(--red);margin-top:8px;}
+  .empty,.loading{text-align:center;color:var(--ink-soft);padding:60px 16px;line-height:1.7;}
+  .login-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:32px;}
+  input.login-input{width:100%;padding:12px 14px;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;font-size:15px;}
+  .login-btn{width:100%;padding:13px;border:none;border-radius:8px;background:var(--navy);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;}
+  .login-btn:hover{background:var(--navy-deep);}
+  #login-msg{margin-top:12px;font-size:13.5px;min-height:18px;}
+  .denied{text-align:center;padding:60px 16px;color:var(--ink-soft);line-height:1.8;}
+</style>
+</head>
+<body>
+
+<div class="wrap narrow" id="login-view" style="display:none;">
+  <a class="back" href="/">← 홈으로</a>
+  <div class="login-card">
+    <h1 style="margin-bottom:22px;">관리자 로그인</h1>
+    <input type="email" id="email" class="login-input" placeholder="관리자 이메일" autocomplete="email">
+    <input type="password" id="password" class="login-input" placeholder="비밀번호" autocomplete="current-password">
+    <button id="login-btn" class="login-btn">로그인</button>
+    <p id="login-msg"></p>
+  </div>
+</div>
+
+<div class="wrap" id="denied-view" style="display:none;">
+  <div class="denied">
+    관리자 계정으로만 접근할 수 있는 페이지예요.<br>
+    <button class="logout" id="denied-logout-btn">다른 계정으로 로그인</button>
+  </div>
+</div>
+
+<div class="wrap" id="admin-view" style="display:none;">
+  <a class="back" href="/">← 홈으로</a>
+  <header>
+    <h1>진단 신청 관리</h1>
+    <button class="logout" id="logout-btn">로그아웃</button>
+  </header>
+  <div id="list" class="loading">불러오는 중...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  const SUPABASE_URL = 'https://oblreetsmbzurfmdskpl.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_PxmipI1KWIgeMuwP-5Ci8Q_RZwtwo2c';
+  const ADMIN_EMAIL = 'noteand.something@gmail.com';
+  const STATUS_OPTIONS = ['검토중', '견적발송', '진행중', '완료'];
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const loginView = document.getElementById('login-view');
+  const deniedView = document.getElementById('denied-view');
+  const adminView = document.getElementById('admin-view');
+  const listEl = document.getElementById('list');
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function showView(view) {
+    [loginView, deniedView, adminView].forEach(v => v.style.display = 'none');
+    view.style.display = 'block';
+  }
+
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      showView(loginView);
+      return;
+    }
+    if (session.user.email !== ADMIN_EMAIL) {
+      showView(deniedView);
+      return;
+    }
+    showView(adminView);
+    await loadRequests();
+  }
+
+  document.getElementById('login-btn').addEventListener('click', async () => {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const msgEl = document.getElementById('login-msg');
+    if (!email || !password) {
+      msgEl.style.color = '#c0392b';
+      msgEl.textContent = '이메일과 비밀번호를 입력해주세요.';
+      return;
+    }
+    msgEl.style.color = '#666';
+    msgEl.textContent = '로그인 중...';
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      msgEl.style.color = '#c0392b';
+      msgEl.textContent = error.message;
+      return;
+    }
+    init();
+  });
+
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    init();
+  });
+  document.getElementById('denied-logout-btn').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    init();
+  });
+
+  async function loadRequests() {
+    listEl.className = 'loading';
+    listEl.textContent = '불러오는 중...';
+    const { data, error } = await sb
+      .from('diagnosis_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      listEl.className = 'empty';
+      listEl.textContent = '신청 내역을 불러오는 중 문제가 생겼어요. 잠시 후 다시 시도해주세요.';
+      return;
+    }
+    if (!data || data.length === 0) {
+      listEl.className = 'empty';
+      listEl.textContent = '아직 접수된 진단 신청이 없어요.';
+      return;
+    }
+
+    listEl.className = '';
+    listEl.innerHTML = data.map(row => renderCard(row)).join('');
+    data.forEach(row => bindCard(row));
+  }
+
+  function renderCard(row) {
+    const statusOpts = STATUS_OPTIONS.map(s =>
+      `<option value="${s}" ${row.status === s ? 'selected' : ''}>${s}</option>`
+    ).join('');
+    return `
+      <div class="card" data-id="${row.id}">
+        <div class="top">
+          <div>
+            <div class="name">${esc(row.name)} · ${esc(row.product_type) || '굿즈 제작 문의'}</div>
+            <div class="row"><span>연락처</span><span>${esc(row.phone)}</span></div>
+            <div class="row"><span>이메일</span><span>${esc(row.email)}</span></div>
+            <div class="row"><span>수량 / 예산</span><span>${esc(row.quantity) || '-'} / ${esc(row.budget) || '-'}</span></div>
+            <div class="row"><span>참고사항</span><span>${esc(row.notes) || '-'}</span></div>
+            <div class="row"><span>제출일</span><span>${new Date(row.created_at).toLocaleString('ko-KR')}</span></div>
+          </div>
+          <select class="q-status" data-role="status">${statusOpts}</select>
+        </div>
+        <div class="divider"></div>
+        <div class="field-row">
+          <span class="field-label">견적 금액</span>
+          <input type="text" class="q-amount" data-role="amount" placeholder="예: 1,500,000원" value="${esc(row.quote_amount)}">
+        </div>
+        <div class="field-row">
+          <span class="field-label">메모 (배송 일정, 조건 등 · 선택)</span>
+          <textarea class="q-memo" data-role="memo" placeholder="선택 입력">${esc(row.quote_memo)}</textarea>
+        </div>
+        <div class="actions">
+          <button class="btn-send" data-role="send-btn">이 내용으로 견적 발송</button>
+        </div>
+        <div data-role="msg"></div>
+        ${row.quote_sent_at ? `<div class="sent-note">✓ ${new Date(row.quote_sent_at).toLocaleString('ko-KR')}에 견적 발송됨</div>` : ''}
+      </div>
+    `;
+  }
+
+  function bindCard(row) {
+    const card = document.querySelector(`.card[data-id="${row.id}"]`);
+    if (!card) return;
+    const statusEl = card.querySelector('[data-role="status"]');
+    const amountEl = card.querySelector('[data-role="amount"]');
+    const memoEl = card.querySelector('[data-role="memo"]');
+    const sendBtn = card.querySelector('[data-role="send-btn"]');
+    const msgEl = card.querySelector('[data-role="msg"]');
+
+    // 상태만 바꿀 때는 바로 저장
+    statusEl.addEventListener('change', async () => {
+      const { error } = await sb
+        .from('diagnosis_requests')
+        .update({ status: statusEl.value })
+        .eq('id', row.id);
+      if (error) {
+        msgEl.className = 'err-note';
+        msgEl.textContent = '상태 변경에 실패했어요.';
+      } else {
+        msgEl.className = 'sent-note';
+        msgEl.textContent = '상태가 변경되었어요.';
+      }
+    });
+
+    sendBtn.addEventListener('click', async () => {
+      const amount = amountEl.value.trim();
+      const memo = memoEl.value.trim();
+      if (!amount) {
+        msgEl.className = 'err-note';
+        msgEl.textContent = '견적 금액을 입력해주세요.';
+        return;
+      }
+      sendBtn.disabled = true;
+      msgEl.className = '';
+      msgEl.style.color = '#666';
+      msgEl.textContent = '발송 중...';
+
+      // 1) 견적 금액/메모 먼저 저장
+      const { error: updateError } = await sb
+        .from('diagnosis_requests')
+        .update({ quote_amount: amount, quote_memo: memo || null })
+        .eq('id', row.id);
+
+      if (updateError) {
+        sendBtn.disabled = false;
+        msgEl.className = 'err-note';
+        msgEl.textContent = '저장에 실패했어요. 다시 시도해주세요.';
+        return;
+      }
+
+      // 2) 이메일 발송 요청
+      const { data: { session } } = await sb.auth.getSession();
+      try {
+        const res = await fetch('/api/send-quote', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ id: row.id }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || '발송 실패');
+        msgEl.className = 'sent-note';
+        msgEl.textContent = '견적 메일이 발송되었어요!';
+        statusEl.value = '견적발송';
+      } catch (err) {
+        msgEl.className = 'err-note';
+        msgEl.textContent = err.message || '발송에 실패했어요.';
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+  }
+
+  init();
+</script>
+</body>
+</html>

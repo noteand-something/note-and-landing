@@ -75,6 +75,10 @@
         <div class="row"><span>제출일</span><span>${new Date(row.created_at).toLocaleDateString('ko-KR')}</span></div>
         <div class="row"><span>수량</span><span>${esc(row.quantity) || '-'}</span></div>
         <div class="row"><span>예산</span><span>${esc(row.budget) || '-'}</span></div>
+        ${row.quote_amount ? `
+        <div class="row"><span>견적 금액</span><span style="font-weight:700;color:var(--navy);">${esc(row.quote_amount)}</span></div>
+        ${row.quote_memo ? `<div class="row"><span>안내 사항</span><span>${esc(row.quote_memo)}</span></div>` : ''}
+        ` : ''}
       </div>
     `).join('');
   }
