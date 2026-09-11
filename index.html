@@ -207,7 +207,7 @@
       <a class="nav-link" href="#solution">해결책</a>
       <a class="nav-link" href="#pricing">가격</a>
       <a class="nav-link" href="#cta">문의하기</a>
-      <a class="nav-link" href="/login.html">로그인</a>
+      <a class="nav-link" id="nav-login-link" href="/login.html">로그인</a>
     </div>
   </nav>
 </header>
@@ -443,6 +443,30 @@
   <div class="wrap"><span style="color:var(--navy);font-weight:700;">NOTE AND</span> · 굿즈 제작, 노트앤드가 대신 집니다.</div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  (function () {
+    var NAV_SUPABASE_URL = 'https://oblreetsmbzurfmdskpl.supabase.co';
+    var NAV_SUPABASE_ANON_KEY = 'sb_publishable_PxmipI1KWIgeMuwP-5Ci8Q_RZwtwo2c';
+    var navSb = supabase.createClient(NAV_SUPABASE_URL, NAV_SUPABASE_ANON_KEY);
+    var navLink = document.getElementById('nav-login-link');
+    if (!navLink) return;
+
+    navSb.auth.getSession().then(function (result) {
+      var session = result.data.session;
+      if (session) {
+        navLink.textContent = '로그아웃';
+        navLink.href = '#';
+        navLink.addEventListener('click', function (e) {
+          e.preventDefault();
+          navSb.auth.signOut().then(function () {
+            window.location.reload();
+          });
+        });
+      }
+    });
+  })();
+</script>
 <script>
   const items = document.querySelectorAll('[data-reveal]');
   const io = new IntersectionObserver((entries) => {

@@ -10,14 +10,16 @@
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;background:#f7f7f5;margin:0;color:#1a1a1a;}
   .wrap{max-width:420px;margin:0 auto;padding:60px 20px;}
   .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:32px;}
-  h1{font-size:22px;margin:0 0 22px;}
+  .tabs{display:flex;background:#f0eee9;border-radius:10px;padding:4px;margin-bottom:24px;}
+  .tab{flex:1;text-align:center;padding:10px 0;font-size:14.5px;font-weight:700;color:var(--ink-soft);border-radius:8px;cursor:pointer;user-select:none;transition:background .15s ease, color .15s ease;}
+  .tab.active{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  h1{font-size:20px;margin:0 0 18px;}
   input{width:100%;padding:12px 14px;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;font-size:15px;}
   input:focus{outline:none;border-color:var(--navy);}
   button{width:100%;padding:13px;border:none;border-radius:8px;background:var(--navy);color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:background .15s ease;}
   button:hover{background:var(--navy-deep);}
   button:disabled{opacity:.6;cursor:default;}
-  .toggle{text-align:center;margin-top:18px;font-size:14px;color:var(--ink-soft);}
-  .toggle a{color:var(--navy);cursor:pointer;text-decoration:underline;font-weight:600;}
+  .hint{text-align:center;margin-top:16px;font-size:13px;color:var(--ink-soft);}
   #msg{margin-top:12px;font-size:13.5px;min-height:18px;}
   .back{display:inline-block;margin-bottom:18px;font-size:14px;color:var(--ink-soft);text-decoration:none;}
   .back:hover{color:var(--navy);}
@@ -27,12 +29,16 @@
 <div class="wrap">
   <a class="back" href="/">← 홈으로</a>
   <div class="card">
+    <div class="tabs">
+      <div class="tab active" id="tab-login">로그인</div>
+      <div class="tab" id="tab-signup">회원가입</div>
+    </div>
     <h1 id="form-title">로그인</h1>
     <input type="email" id="email" placeholder="이메일" autocomplete="email" required>
     <input type="password" id="password" placeholder="비밀번호 (6자 이상)" autocomplete="current-password" required>
     <button id="submit-btn">로그인</button>
     <p id="msg"></p>
-    <div class="toggle" id="toggle-wrap">아직 계정이 없으신가요? <a id="toggle-link">회원가입</a></div>
+    <div class="hint" id="hint-text">아직 계정이 없으신가요? 위에서 '회원가입'을 눌러주세요.</div>
   </div>
 </div>
 
@@ -49,32 +55,41 @@
   const msgEl = document.getElementById('msg');
   const btnEl = document.getElementById('submit-btn');
   const titleEl = document.getElementById('form-title');
-  const toggleWrap = document.getElementById('toggle-wrap');
+  const hintEl = document.getElementById('hint-text');
+  const tabLogin = document.getElementById('tab-login');
+  const tabSignup = document.getElementById('tab-signup');
 
   // 이미 로그인되어 있으면 바로 신청 현황으로
   sb.auth.getSession().then(({ data }) => {
     if (data.session) window.location.href = '/dashboard.html';
   });
 
-  function bindToggle() {
-    document.getElementById('toggle-link').addEventListener('click', () => {
-      mode = mode === 'login' ? 'signup' : 'login';
-      msgEl.textContent = '';
-      render();
-    });
+  function setMode(newMode) {
+    if (mode === newMode) return;
+    mode = newMode;
+    msgEl.textContent = '';
+    render();
   }
+
+  tabLogin.addEventListener('click', () => setMode('login'));
+  tabSignup.addEventListener('click', () => setMode('signup'));
 
   function render() {
     if (mode === 'login') {
+      tabLogin.classList.add('active');
+      tabSignup.classList.remove('active');
       titleEl.textContent = '로그인';
       btnEl.textContent = '로그인';
-      toggleWrap.innerHTML = '아직 계정이 없으신가요? <a id="toggle-link">회원가입</a>';
+      pwEl.setAttribute('autocomplete', 'current-password');
+      hintEl.textContent = "아직 계정이 없으신가요? 위에서 '회원가입'을 눌러주세요.";
     } else {
+      tabSignup.classList.add('active');
+      tabLogin.classList.remove('active');
       titleEl.textContent = '회원가입';
       btnEl.textContent = '가입하기';
-      toggleWrap.innerHTML = '이미 계정이 있으신가요? <a id="toggle-link">로그인</a>';
+      pwEl.setAttribute('autocomplete', 'new-password');
+      hintEl.textContent = "이미 계정이 있으신가요? 위에서 '로그인'을 눌러주세요.";
     }
-    bindToggle();
   }
   render();
 
