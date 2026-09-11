@@ -1,13 +1,167 @@
-// 견적 발송 처리: 관리자(브랜드 계정)만 호출 가능. 진단 신청 건에 견적 금액/메모를 반영하고
-// 신청자 이메일로 견적 안내 메일을 보낸 뒤, 상태를 '견적발송'으로 바꿉니다.
+// 견적 발송 처리: 관리자(브랜드 계정)만 호출 가능.
+// 신청 건에 저장된 견적 항목(quote_items)으로 정식 견적서 PDF를 만들어 신청자 이메일로 보내고,
+// 상태를 '견적발송'으로 바꿉니다.
 // 필요한 환경변수 (Vercel 프로젝트 설정 > Environment Variables 에 등록):
 //   SUPABASE_URL              - Supabase 프로젝트 URL
 //   SUPABASE_SERVICE_ROLE_KEY - Supabase service_role(=secret) 키
 //   RESEND_API_KEY            - Resend API 키 (이메일 발송용)
 
+const fs = require('fs');
+const path = require('path');
+const { PDFDocument, rgb } = require('pdf-lib');
+const fontkit = require('@pdf-lib/fontkit');
+
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_PxmipI1KWIgeMuwP-5Ci8Q_RZwtwo2c';
 const ADMIN_EMAIL = 'noteand.something@gmail.com';
 
+// ── 금액 표기 헬퍼 ──────────────────────────────────────────
+function fmt(n) {
+  const num = Number(n) || 0;
+  return num.toLocaleString('ko-KR');
+}
+function fmtWon(n) {
+  const num = Number(n) || 0;
+  const sign = num < 0 ? '-' : '';
+  return sign + '₩' + fmt(Math.abs(num));
+}
+function truncate(font, str, size, maxWidth) {
+  str = String(str ?? '');
+  if (font.widthOfTextAtSize(str, size) <= maxWidth) return str;
+  let out = str;
+  while (out.length > 0 && font.widthOfTextAtSize(out + '…', size) > maxWidth) {
+    out = out.slice(0, -1);
+  }
+  return out + '…';
+}
+
+// ── 견적서 PDF 생성 ─────────────────────────────────────────
+async function generateQuotePdf({ recipientName, items, memo, validDays, issueDate }) {
+  const pdfDoc = await PDFDocument.create();
+  pdfDoc.registerFontkit(fontkit);
+  const fontBytes = fs.readFileSync(path.join(__dirname, 'fonts', 'NotoSans-Regular.ttf'));
+  const font = await pdfDoc.embedFont(fontBytes, { subset: false });
+
+  const PAGE_W = 595.28, PAGE_H = 841.89;
+  const marginX = 42;
+  const bottomLimit = 70;
+
+  const navy = rgb(0x1d / 255, 0x35 / 255, 0x57 / 255);
+  const black = rgb(0.12, 0.12, 0.12);
+  const gray = rgb(0.45, 0.45, 0.45);
+  const lightBg = rgb(0.93, 0.94, 0.96);
+  const zebra = rgb(0.97, 0.97, 0.96);
+  const lineColor = rgb(0.85, 0.84, 0.8);
+  const white = rgb(1, 1, 1);
+
+  let page, y;
+  const tableRight = PAGE_W - marginX;
+
+  function newPage() {
+    page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+    y = PAGE_H - 60;
+  }
+  function text(str, x, yy, size, color = black) {
+    page.drawText(String(str ?? ''), { x, y: yy, size, font, color });
+  }
+  function rightText(str, xRight, yy, size, color = black) {
+    const w = font.widthOfTextAtSize(String(str ?? ''), size);
+    text(str, xRight - w, yy, size, color);
+  }
+  function line(x1, y1, x2, y2, color = lineColor, thickness = 1) {
+    page.drawLine({ start: { x: x1, y: y1 }, end: { x: x2, y: y2 }, thickness, color });
+  }
+  function rect(x, yy, w, h, color) {
+    page.drawRectangle({ x, y: yy, width: w, height: h, color });
+  }
+
+  newPage();
+
+  text('견 적 서', marginX, y - 6, 24, navy);
+
+  const boxW = 220, boxX = tableRight - boxW, boxH = 76, boxY = y - boxH + 6;
+  rect(boxX, boxY, boxW, boxH, lightBg);
+  page.drawRectangle({ x: boxX, y: boxY, width: boxW, height: boxH, borderColor: lineColor, borderWidth: 1 });
+  const supplierRows = [
+    ['상호', 'NOTE AND'],
+    ['담당자', '이예지'],
+    ['이메일', 'noteand.something@gmail.com'],
+    ['발행일', issueDate],
+  ];
+  let sy = boxY + boxH - 16;
+  supplierRows.forEach(([k, v]) => {
+    text(k, boxX + 12, sy, 8.5, gray);
+    text(v, boxX + 58, sy, 9, black);
+    sy -= 16;
+  });
+
+  y = boxY - 34;
+
+  text(`${recipientName} 귀하`, marginX, y, 14.5, black);
+  y -= 26;
+
+  const total = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0), 0);
+  const bannerH = 30;
+  rect(marginX, y - bannerH, tableRight - marginX, bannerH, navy);
+  text('금액 (VAT 별도 협의)', marginX + 14, y - bannerH + 10, 10.5, white);
+  rightText(fmtWon(total), tableRight - 14, y - bannerH + 9, 14, white);
+  y -= bannerH + 22;
+
+  const col = {
+    name: marginX,
+    qty: marginX + 270,
+    price: marginX + 350,
+    amt: marginX + 445,
+  };
+  const headerH = 24;
+  function drawTableHeader() {
+    rect(marginX, y - headerH, tableRight - marginX, headerH, navy);
+    text('상품명', col.name + 10, y - headerH + 8, 9.5, white);
+    text('수량', col.qty + 10, y - headerH + 8, 9.5, white);
+    text('단가', col.price + 10, y - headerH + 8, 9.5, white);
+    text('금액', col.amt + 10, y - headerH + 8, 9.5, white);
+    y -= headerH;
+  }
+  drawTableHeader();
+
+  const rowH = 26;
+  items.forEach((it, idx) => {
+    if (y - rowH < bottomLimit) {
+      line(marginX, y, tableRight, y);
+      newPage();
+      drawTableHeader();
+    }
+    const rowY = y - rowH;
+    if (idx % 2 === 1) rect(marginX, rowY, tableRight - marginX, rowH, zebra);
+    const nameMaxW = col.qty - col.name - 16;
+    text(truncate(font, it.name, 9.5, nameMaxW), col.name + 10, rowY + 9, 9.5, black);
+    rightText(fmt(it.qty), col.price - 12, rowY + 9, 9.5, black);
+    rightText(fmtWon(it.price), col.amt - 12, rowY + 9, 9.5, black);
+    rightText(fmtWon((Number(it.qty) || 0) * (Number(it.price) || 0)), tableRight - 10, rowY + 9, 9.5, black);
+    y = rowY;
+  });
+  line(marginX, y, tableRight, y);
+
+  const totalRowH = 28;
+  if (y - totalRowH < bottomLimit) newPage();
+  const totalQty = items.reduce((s, it) => s + (Number(it.qty) || 0), 0);
+  const totalRowY = y - totalRowH;
+  rect(marginX, totalRowY, tableRight - marginX, totalRowH, lightBg);
+  text('합계', col.name + 10, totalRowY + 10, 10, navy);
+  rightText(fmt(totalQty), col.price - 12, totalRowY + 10, 10, navy);
+  rightText(fmtWon(total), tableRight - 10, totalRowY + 10, 11, navy);
+  page.drawRectangle({ x: marginX, y: totalRowY, width: tableRight - marginX, height: totalRowH, borderColor: lineColor, borderWidth: 1 });
+  y = totalRowY - 30;
+
+  if (memo) {
+    text(`비고 : ${memo}`, marginX, y, 9.5, gray);
+    y -= 16;
+  }
+  text(`유효기간 : 발행일로부터 ${validDays || 7}일`, marginX, y, 9.5, gray);
+
+  return pdfDoc.save();
+}
+
+// ── 서버리스 핸들러 ─────────────────────────────────────────
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -66,12 +220,25 @@ module.exports = async function handler(req, res) {
       res.status(404).json({ error: '신청 내역을 찾을 수 없습니다.' });
       return;
     }
-    if (!row.quote_amount) {
-      res.status(400).json({ error: '견적 금액이 입력되지 않았습니다.' });
+    const items = Array.isArray(row.quote_items) ? row.quote_items : [];
+    if (items.length === 0) {
+      res.status(400).json({ error: '견적 항목이 입력되지 않았습니다.' });
       return;
     }
 
-    // 3) 이메일 발송 (Resend)
+    // 3) 견적서 PDF 생성
+    const issueDate = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' }); // YYYY-MM-DD
+    const pdfBytes = await generateQuotePdf({
+      recipientName: row.name,
+      items,
+      memo: row.quote_memo || '',
+      validDays: row.quote_valid_days || 7,
+      issueDate,
+    });
+    const pdfBase64 = Buffer.from(pdfBytes).toString('base64');
+    const total = items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.price) || 0), 0);
+
+    // 4) 이메일 발송 (Resend, PDF 첨부)
     if (RESEND_API_KEY) {
       const emailRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -85,10 +252,16 @@ module.exports = async function handler(req, res) {
           subject: `[NOTE AND] ${row.name}님, 견적서가 도착했어요`,
           text:
             `안녕하세요, ${row.name}님.\n\n` +
-            `요청하신 굿즈 제작 문의에 대한 견적을 안내드립니다.\n\n` +
-            `견적 금액: ${row.quote_amount}\n` +
+            `요청하신 굿즈 제작 문의에 대한 견적서를 첨부해드립니다.\n\n` +
+            `견적 금액: ₩${total.toLocaleString('ko-KR')} (VAT 별도 협의)\n` +
             (row.quote_memo ? `안내 사항: ${row.quote_memo}\n` : '') +
-            `\n자세한 내용은 회신 주시면 빠르게 안내드릴게요.\n\nNOTE AND 드림`,
+            `\n첨부된 PDF 견적서를 확인해주시고, 궁금한 점은 회신 부탁드려요.\n\nNOTE AND 드림`,
+          attachments: [
+            {
+              filename: `노트앤드_견적서_${issueDate}.pdf`,
+              content: pdfBase64,
+            },
+          ],
         }),
       });
       if (!emailRes.ok) {
@@ -101,7 +274,7 @@ module.exports = async function handler(req, res) {
       console.error('RESEND_API_KEY 환경변수가 설정되지 않았습니다.');
     }
 
-    // 4) 상태를 '견적발송'으로 업데이트 + 발송 시각 기록
+    // 5) 상태를 '견적발송'으로 업데이트 + 발송 시각 기록
     await fetch(`${SUPABASE_URL}/rest/v1/diagnosis_requests?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: {
