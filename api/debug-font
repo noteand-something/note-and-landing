@@ -1,0 +1,29 @@
+// 임시 진단용 엔드포인트: 폰트 파일이 배포에 포함됐는지 확인합니다.
+// 문제 해결 후에는 삭제해도 됩니다.
+const fs = require('fs');
+const path = require('path');
+
+module.exports = async function handler(req, res) {
+  const result = {};
+  try {
+    result.__dirname = __dirname;
+    result.cwd = process.cwd();
+    result.dirnameContents = fs.readdirSync(__dirname);
+    const fontsDir = path.join(__dirname, 'fonts');
+    result.fontsDirExists = fs.existsSync(fontsDir);
+    if (result.fontsDirExists) {
+      result.fontsDirContents = fs.readdirSync(fontsDir);
+    }
+    const fontPath = path.join(__dirname, 'fonts', 'NotoSans-Regular.ttf');
+    result.fontPath = fontPath;
+    result.fontExists = fs.existsSync(fontPath);
+    if (result.fontExists) {
+      result.fontSize = fs.statSync(fontPath).size;
+    }
+    // 프로젝트 루트도 확인
+    result.taskRootContents = fs.existsSync('/var/task') ? fs.readdirSync('/var/task') : 'no /var/task';
+  } catch (err) {
+    result.error = String(err);
+  }
+  res.status(200).json(result);
+};
